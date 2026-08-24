@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main, 'feature/**', 'hotfix/**']
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Publish immutable source-SHA image from develop
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  java-ci:
+    name: Lint, tests, coverage
+    uses: pploc/gym-infra/.github/workflows/java-ci.yml@4aa5f289f526b3fc2bb22790fe6e0dc2b49fe243
+    with:
+      service_path: .
+      java_version: '26'
+      gradle_args: check
+    secrets: inherit
+
+  docker:
+    name: Build & push image
+    needs: java-ci
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      inputs.publish_image &&
+      github.ref == 'refs/heads/develop'
+    uses: pploc/gym-infra/.github/workflows/docker-build.yml@79dc36fb29857730eb05ff27f4ee9fa33dfd253b
+    with:
+      service_name: ms-gym-payment
+      context: .
+      push: true
+      source_sha_only: true
+      max_tags: 20
+    permissions:
+      contents: read
+      packages: write

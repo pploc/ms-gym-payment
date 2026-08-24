@@ -1,0 +1,97 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.0'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'jacoco'
+}
+
+group = 'com.gym.payment'
+version = '1.0.0'
+
+jacoco {
+    toolVersion = '0.8.14'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(26)
+    }
+}
+
+def gprUser = System.getenv('GITHUB_ACTOR') ?: project.findProperty('gpr.user') ?: 'pploc'
+def gprKey = System.getenv('GITHUB_TOKEN') ?: System.getenv('READ_PACKAGES_TOKEN') ?: System.getenv('GPR_TOKEN') ?: project.findProperty('gpr.key')
+
+repositories {
+    mavenCentral()
+    maven { url 'https://packages.confluent.io/maven/' }
+    maven {
+        url = uri('https://maven.pkg.github.com/pploc/gym-proto')
+        credentials { username = gprUser; password = gprKey }
+        content { includeGroup 'com.gym.proto' }
+    }
+    maven {
+        url = uri('https://maven.pkg.github.com/pploc/common-java')
+        credentials { username = gprUser; password = gprKey }
+        content { includeGroup 'com.gym' }
+    }
+}
+
+dependencies {
+    implementation 'com.gym:common-java:3.0.0'
+    implementation 'com.gym.proto:gym-proto-java:7.0.2'
+    implementation('com.google.protobuf:protobuf-java') { version { strictly '4.33.5' } }
+    implementation('com.google.protobuf:protobuf-java-util') { version { strictly '4.33.5' } }
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.springframework.retry:spring-retry:2.0.6'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+    runtimeOnly 'org.postgresql:postgresql'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'io.grpc:grpc-testing:1.68.1'
+    testImplementation 'io.grpc:grpc-inprocess:1.68.1'
+    testRuntimeOnly 'com.h2database:h2'
+    testImplementation 'org.testcontainers:junit-jupiter:1.20.1'
+    testImplementation 'org.testcontainers:postgresql:1.20.1'
+    testImplementation 'org.testcontainers:kafka:1.20.1'
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports { xml.required = true; html.required = true }
+}
+
+tasks.register('startEnv', Exec) {
+    group = 'environment'
+    description = 'Start local Docker testing environment (PostgreSQL, Kafka, Schema Registry)'
+    commandLine 'docker', 'compose', 'up', '-d'
+}
+
+tasks.register('stopEnv', Exec) {
+    group = 'environment'
+    description = 'Stop local Docker testing environment'
+    commandLine 'docker', 'compose', 'down'
+}
+
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        lineEndings 'UNIX'
+    }
+}
