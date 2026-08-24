@@ -5,9 +5,17 @@ import com.gym.common.grpc.security.RpcPolicyKind;
 import com.gym.payment.application.PaymentApplicationService;
 import com.gym.proto.payment.v1.GetPaymentStatusRequest;
 import com.gym.proto.payment.v1.GetPaymentStatusResponse;
+import com.gym.proto.payment.v1.GetPaymentsByUserRequest;
+import com.gym.proto.payment.v1.GetPaymentsByUserResponse;
+import com.gym.proto.payment.v1.GetRevenueReportRequest;
+import com.gym.proto.payment.v1.GetRevenueReportResponse;
+import com.gym.proto.payment.v1.GetSpendingHistoryRequest;
+import com.gym.proto.payment.v1.GetSpendingHistoryResponse;
 import com.gym.proto.payment.v1.InitiatePaymentRequest;
 import com.gym.proto.payment.v1.InitiatePaymentResponse;
 import com.gym.proto.payment.v1.PaymentServiceGrpc;
+import com.gym.proto.payment.v1.RefundPaymentRequest;
+import com.gym.proto.payment.v1.RefundPaymentResponse;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
@@ -48,5 +56,36 @@ public class PaymentGrpcHandler extends PaymentServiceGrpc.PaymentServiceImplBas
         } catch (IllegalArgumentException e) {
             responseObserver.onError(Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
         }
+    }
+
+    @Override
+    @RequirePolicy(RpcPolicyKind.INTERNAL_WORKLOAD)
+    public void getSpendingHistory(
+            GetSpendingHistoryRequest request, StreamObserver<GetSpendingHistoryResponse> responseObserver) {
+        unsupported(responseObserver);
+    }
+
+    @Override
+    @RequirePolicy(RpcPolicyKind.INTERNAL_WORKLOAD)
+    public void refundPayment(RefundPaymentRequest request, StreamObserver<RefundPaymentResponse> responseObserver) {
+        unsupported(responseObserver);
+    }
+
+    @Override
+    @RequirePolicy(RpcPolicyKind.INTERNAL_WORKLOAD)
+    public void getRevenueReport(
+            GetRevenueReportRequest request, StreamObserver<GetRevenueReportResponse> responseObserver) {
+        unsupported(responseObserver);
+    }
+
+    @Override
+    @RequirePolicy(RpcPolicyKind.INTERNAL_WORKLOAD)
+    public void getPaymentsByUser(
+            GetPaymentsByUserRequest request, StreamObserver<GetPaymentsByUserResponse> responseObserver) {
+        unsupported(responseObserver);
+    }
+
+    private static void unsupported(StreamObserver<?> responseObserver) {
+        responseObserver.onError(Status.UNIMPLEMENTED.withDescription("Payment method is not supported").asRuntimeException());
     }
 }
